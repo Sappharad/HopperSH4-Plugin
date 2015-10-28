@@ -1,2 +1,19 @@
 # HopperSH4-Plugin
-A plugin for Hopper Disassembler which adds support for Hitachi SH4. (Dreamcast)
+A plugin for Hopper Disassembler which adds support for Hitachi SH4. (Sega Dreamcast)
+Plugin thrown together by Paul Kratt.
+
+The SH4 disassembly code is based on dcdis v0.3.3a by Lars Olsson.
+There was no license associated with that code, so I guess there's no license for this Plug-in either.
+
+To install into Hopper for OS X:
+1. Checkout or download this repository.
+2. Open the XCode Project.
+3. Build the XCode Project.
+
+That's it. Building the project installs it into the plugins directory.
+
+This is very early / incomplete at the moment and you'll need to know where procedures are to disassemble them. The initial check-in was thrown together in 2 days.
+
+Known issues:
+1. You'll need to mark all of the procedures yourself. Jumping to a subroutine always occurs using a register value, and we don't know what's in the register when we're diassembling the instruction. This can be somewhat solved by looking at previous instructions, and I'll probably end up doing that.
+2. Some formatting / syntax might not be correct for Hopper.
