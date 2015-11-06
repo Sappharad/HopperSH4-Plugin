@@ -8,6 +8,7 @@
 
 #import "SH4Ctx.h"
 #import "SH4CPU.h"
+#import "sh7091.h"
 #import <Hopper/CommonTypes.h>
 #import <Hopper/CPUDefinition.h>
 #import <Hopper/HPDisassembledFile.h>
@@ -144,7 +145,7 @@ uint16_t memory_read_callback(uint32_t address, void* private) {
 - (int)disassembleSingleInstruction:(DisasmStruct *)disasm usingProcessorMode:(NSUInteger)mode {
     //char instr[1024];
     
-    char* instr = decode(disasm->virtualAddr, memory_read_callback, (__bridge void*)self);
+    char* instr = decode((uint32_t)disasm->virtualAddr, memory_read_callback, (__bridge void*)self);
     //This is really shitty because I'm using memory that I shouldn't still have
 
     disasm->instruction.branchType = DISASM_BRANCH_NONE;
@@ -192,11 +193,19 @@ uint16_t memory_read_callback(uint32_t address, void* private) {
         if (strncmp(disasm->instruction.mnemonic, "jsr", 3) == 0
          || strncmp(disasm->instruction.mnemonic, "bsr", 3) == 0) {
             disasm->instruction.branchType = DISASM_BRANCH_CALL;
-            //if (d.branch & d.memmsk) {
-                disasm->instruction.addressValue = [self extractTextToNumber:disasm->operand[0].mnemonic];
-                disasm->operand[0].type = DISASM_OPERAND_CONSTANT_TYPE | DISASM_OPERAND_RELATIVE;
-                disasm->operand[0].immediateValue = disasm->instruction.addressValue;
-            //}
+            disasm->instruction.addressValue = [self extractTextToNumber:disasm->operand[0].mnemonic];
+            disasm->operand[0].type = DISASM_OPERAND_CONSTANT_TYPE | DISASM_OPERAND_RELATIVE;
+            disasm->operand[0].immediateValue = disasm->instruction.addressValue;
+            if(disasm->operand[0].mnemonic[0]=='@' && disasm->operand[0].mnemonic[1]=='r'){
+                //This is pulling a value from a register. Check if the previous line populates that register. That happens a lot.
+                uint32_t prev_PC = ((uint32_t)disasm->virtualAddr)-2;
+                uint16_t opcode = memory_read_callback(prev_PC, (__bridge void*)self);
+                if((opcode&0xf000) == MOVL0 && ((opcode>>8)&0xF)==disasm->instruction.addressValue){
+                    uint32_t reference = (IMM*4+(prev_PC&0xfffffffc)+4);
+                    uint32_t literal = ((memory_read_callback(reference+2, (__bridge void*)self) << 16) | memory_read_callback(reference, (__bridge void*)self));
+                    disasm->instruction.addressValue = literal;
+                }
+            }
         }
         else if (strncmp(disasm->instruction.mnemonic, "rts", 3) == 0){
             disasm->instruction.branchType = DISASM_BRANCH_RET;
