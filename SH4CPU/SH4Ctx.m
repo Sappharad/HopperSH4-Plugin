@@ -129,7 +129,7 @@ uint16_t memory_read_callback(uint32_t address, void* private) {
 -(uint32_t)extractTextToNumber:(char*)opperand{
     uint32_t retval = 0;
     NSString* text = [NSString stringWithCString:opperand encoding:NSASCIIStringEncoding];
-    if([text containsString:@"h'"]){
+    if([text rangeOfString:@"h'"].location != NSNotFound){
         //This is Hex
         NSCharacterSet* cs = [NSCharacterSet characterSetWithCharactersInString:@"0123456789abcdef"];
         NSString* hexa = [[text componentsSeparatedByCharactersInSet:[cs invertedSet]] componentsJoinedByString:@""];
