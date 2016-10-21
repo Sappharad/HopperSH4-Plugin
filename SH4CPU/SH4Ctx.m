@@ -93,6 +93,10 @@
 
 }
 
+- (void)procedureAnalysisOfEpilogForProcedure:(NSObject<HPProcedure> *)procedure atEntryPoint:(Address)entryPoint {
+    
+}
+
 - (void)procedureAnalysisEndedForProcedure:(NSObject<HPProcedure> *)procedure atEntryPoint:(Address)entryPoint {
 
 }
@@ -232,9 +236,47 @@ uint16_t memory_read_callback(uint32_t address, void* private) {
             }
         }
     }
+    //For mov.l instructions, check the value at the referenced address. If it appears to be ASCII, tell Hopper about it.
+    if (strncmp(disasm->instruction.mnemonic, "mov.l", 5) == 0){
+        Address loadAddr = [self extractTextToNumber:disasm->operand[0].mnemonic];
+        //Note: This assumes Dreamcast memory range.
+        //Ideally I'd just like to check if the address falls inside the loaded binary, but I'm not sure if calling
+        //typeCanBeModifiedAtAddress is the proper way to do that. I'll leave this until someone asks me about it
+        //or fixes it themselves.
+        if([_file typeCanBeModifiedAtAddress:loadAddr] && loadAddr >= 0x8C010000 && loadAddr < 0x8D000000){
+            loadAddr = [_file readUInt32AtVirtualAddress:loadAddr];
+            if([_file typeCanBeModifiedAtAddress:loadAddr] && loadAddr >= 0x8C010000 && loadAddr < 0x8D000000){
+                u_int16_t textLen = [self getAsciiLengthAtAddress:loadAddr];
+                if(textLen > 2){
+                    disasm->operand[0].type = DISASM_OPERAND_CONSTANT_TYPE | DISASM_OPERAND_ABSOLUTE;
+                    disasm->operand[0].immediateValue = loadAddr;
+                }
+            }
+        }
+    }
 
     int len = 2; //Instructions are always 2 bytes
     return len;
+}
+
+-(u_int16_t)getAsciiLengthAtAddress:(Address)addr{
+    u_int16_t retval = 0;
+    Address current = addr;
+    do{
+        uint8_t data = [_file readUInt8AtVirtualAddress:current];
+        if(data == 0){
+            break;
+        }
+        if((data < 0x20 || data > 0x7E) && (data < 0x9 || data > 0xD)){
+            //Allow letters, numbers, symbols. Allow tabs, return, linefeeds.
+            retval = 0;
+            break;
+        }
+        retval += 1;
+        addr += 1;
+    }while(retval < 65535);
+    
+    return retval;
 }
 
 - (BOOL)instructionHaltsExecutionFlow:(DisasmStruct *)disasm {

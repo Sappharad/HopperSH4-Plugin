@@ -137,7 +137,7 @@
 		07F966CC18C5BA1200B394AF /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0710;
+				LastUpgradeCheck = 0800;
 				ORGANIZATIONNAME = "Cryptic Apps";
 			};
 			buildConfigurationList = 07F966CF18C5BA1200B394AF /* Build configuration list for PBXProject "SH4CPU" */;
